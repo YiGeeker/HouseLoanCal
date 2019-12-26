@@ -1,1 +1,5 @@
 # Exclude what maintained by hand
+C/*
+!C/*.c
+!C/*.json
+!C/CMakeLists.txt

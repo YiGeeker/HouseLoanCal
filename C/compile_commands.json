@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "c:/Users/ZYF/Documents/Programming/Multiple/HouseLoanCal/C/build",
+    "command": "c:\\GNU\\mingw64\\bin\\gcc.exe  -isystem c:/GNU/mingw64/x86_64-w64-mingw32/include  -o CMakeFiles\\HouseLoanCal.dir\\HouseLoanCal.c.obj   -c c:\\Users\\ZYF\\Documents\\Programming\\Multiple\\HouseLoanCal\\C\\HouseLoanCal.c",
+    "file": "c:/Users/ZYF/Documents/Programming/Multiple/HouseLoanCal/C/HouseLoanCal.c"
+  }
+]

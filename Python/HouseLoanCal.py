@@ -221,7 +221,7 @@ else:                           # for average capital method
             totalPayment += monthPayment
 
         totalInterest = totalPayment - totalLoan[0]
-        print("还款总额{:.6f}万\n\t支付利息{:.6f}万\n\t贷款总额{:.6f}万".format(totalPayment/10000, totalInterest/10000, totalLoan[0]/10000))
+        print("还款总额{:.6f}万\n支付利息{:.6f}万\n贷款总额{:.6f}万".format(totalPayment/10000, totalInterest/10000, totalLoan[0]/10000))
     else:                       # for syndicated loan method
         totalPayment = 0
         for m in range(0, paymentMonths):
@@ -230,4 +230,4 @@ else:                           # for average capital method
             totalPayment += (bankMonthPayment+fundMonthPayment)
 
         totalInterest = totalPayment - (totalLoan[0]+totalLoan[1])
-        print("还款总额{:.6f}万\n\t支付利息{:.6f}万\n\t贷款总额{:.6f}万".format(totalPayment/10000, totalInterest/10000, (totalLoan[0]+totalLoan[1])/10000))
+        print("还款总额{:.6f}万\n支付利息{:.6f}万\n贷款总额{:.6f}万".format(totalPayment/10000, totalInterest/10000, (totalLoan[0]+totalLoan[1])/10000))
