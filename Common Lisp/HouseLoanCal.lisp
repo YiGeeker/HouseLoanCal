@@ -8,7 +8,7 @@
 (defun check-number-valid (input integer-p)
   "Check the input is a valid integer or floating number."
   (if (or (string= input ".") (string= input ""))
-      ;; exclude null string and a dot which will causes "dot context error"
+      ;; exclude null string and a dot which will cause "dot context error"
       (return-from check-number-valid nil)
       (if integer-p
 	  ;; for integer
@@ -46,7 +46,6 @@
 	    ((when (check-number-valid total-loan nil)
 	       (setf total-loan (read-from-string total-loan))
 	       (if (> total-loan 0) t)))
-	    ;; ((and (check-number-valid total-loan nil) (> (read-from-string total-loan) 0)))
 	  (setf total-loan (prompt-read "请输入有效贷款总额（万）：")))
 	(format *query-io* "您的总贷款金额为~a万元~%>>>>>>>>>>>>>>>~%" total-loan)
 	(list (* total-loan 1e4) 0))
