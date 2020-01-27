@@ -4,3 +4,6 @@ C/*
 !C/*.json
 !C/CMakeLists.txt
 Common Lisp/*~
+Assembly_x86/*~
+Assembly_x86/*.obj
+Assembly_x86/*.exe
