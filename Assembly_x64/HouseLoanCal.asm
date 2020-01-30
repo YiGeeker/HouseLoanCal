@@ -9,10 +9,10 @@ include         msvcrt.inc
 includelib      msvcrt.lib
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 .data?
-hStdIn          dd      ?
-hStdOut         dd      ?
-dwBytesWrite    dd      ?
-dwBytesRead	dd	?
+hStdIn          dq      ?
+hStdOut         dq      ?
+qwBytesWrite    dq      ?
+qwBytesRead	dq	?
 szRead		db	16 dup (?)
 szBuffer	db	1024 dup (?)
 bLoanMethod	db	?
@@ -24,12 +24,6 @@ qwPayMonths	dq	?
 r8LoanRate	Real8	?
 r8BankRate	Real8	?
 r8FundRate	Real8	?
-r8MonthLoan	Real8	?
-r8MonthLoanB	Real8	?
-r8TotalPay	Real8	?
-r8TotalInterest	Real8	?
-r8TotalPayB	Real8	?
-r8TotalInstB	Real8	?
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 .const
 szTitle         db      '房贷计算程序', 0
@@ -108,21 +102,19 @@ szFinalA1	db	'每月需还款%.2f元', 0dh, 0ah
 szFinalA2	db	'还款总额%.6f万', 0dh, 0ah
 		db	'支付利息%.6f万', 0dh, 0ah
 		db	'贷款总额%.6f万', 0dh, 0ah, 0
-szDebug		db	'%d', 0dh, 0ah, 0
 szPause         db      'pause', 0
-szAtof		db	'%lf', 0
 dwRateTimes	dd	100	; one hundred
 dwLoanTimes	dd	10000	; ten thousand
 dwMonthsAYear	dd	12
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 .code
-OUTPUT	macro 	_lpszOutput, _dwSize
+OUTPUT	macro 	_lpszOutput, _qwSize
 	sub	rsp, 38h
 	mov	qword ptr [rsp+20h], 0
-	lea	r9, dwBytesWrite
-	mov	r8, _dwSize
+	lea	r9, qwBytesWrite
+	mov	r8, _qwSize
 	mov	rdx, _lpszOutput
-	mov	ecx, hStdOut
+	mov	rcx, hStdOut
 	call	WriteConsole
 	add	rsp, 38h
 	endm
@@ -133,16 +125,16 @@ INPUT	macro
 	lea	rcx, szRead
 	call	RtlZeroMemory
 	mov	qword ptr [rsp+20h], 0
-	lea	r9, dwBytesRead
+	lea	r9, qwBytesRead
 	mov	r8, sizeof szRead
 	lea	rdx, szRead
-	mov	ecx, hStdIn
+	mov	rcx, hStdIn
 	call	ReadConsole
 	add	rsp, 38h
 	endm
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-PROMPT	macro 	_lpszPrompt, _dwSize
-	OUTPUT	_lpszPrompt, _dwSize
+PROMPT	macro 	_lpszPrompt, _qwSize
+	OUTPUT	_lpszPrompt, _qwSize
 	INPUT
 	endm
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -197,7 +189,7 @@ _CtrlHandler	proc	_dwCtrlType
 		cmp	eax, CTRL_BREAK_EVENT
 		jne	_la_end_ch
 _la_right_ch:	sub	rsp, 18h
-		mov	ecx, hStdIn
+		mov	rcx, hStdIn
 		call	CloseHandle
 		add	rsp, 18h
 _la_end_ch:	mov	rax, TRUE
@@ -211,9 +203,9 @@ _GetLoanMethod	proc
 		call	lstrlen
         	PROMPT	offset szLoanMethodP, rax
 		; Make sure that the input is 1, 2 or 3
-		; The last is 0dh, 0ah, so dwBytesRead is 3
-_la_loop1_glm:	mov   	eax, dwBytesRead
-		cmp	eax, 3
+		; The last is 0dh, 0ah, so qwBytesRead is 3
+_la_loop1_glm:	mov   	rax, qwBytesRead
+		cmp	rax, 3
 		jne	_la_prompt_glm
 		mov	al, szRead[0]
 		cmp	al, '1'
@@ -258,10 +250,9 @@ _la_loop1_gtl:	mov	rdx, TRUE
 		jnz	_la_float1_gtl
 _la_prompt1_gtl:PROMPT	offset szTotalLoanQ1, sizeof szTotalLoanQ1
 		jmp	_la_loop1_gtl
-_la_float1_gtl: lea	r8, r8TotalLoan
-		lea	rdx, szAtof
-		lea	rcx, szRead
-		call	vc_sscanf
+_la_float1_gtl: lea	rcx, szRead
+		call	vc_atof
+		movq	r8TotalLoan, xmm0
 		fld	r8TotalLoan
 		; Make sure that the input is a number above 0
 		ftst
@@ -288,10 +279,9 @@ _la_loop2_gtl:	xor	rdx, rdx
 		jnz	_la_float2_gtl
 _la_prompt2_gtl:PROMPT	offset szTotalLoanQ2, sizeof szTotalLoanQ2
 		jmp	_la_loop2_gtl
-_la_float2_gtl: lea	r8, r8TotalLoanBank
-		lea	rdx, szAtof
-		lea	rcx, szRead
-		call	vc_sscanf
+_la_float2_gtl: lea	rcx, szRead
+		call	vc_atof
+		movq	r8TotalLoanBank, xmm0
 		fld	r8TotalLoanBank
 		ftst
 		fstsw	ax
@@ -305,10 +295,9 @@ _la_loop3_gtl:	xor	rdx, rdx
 		jnz	_la_float3_gtl
 _la_prompt3_gtl:PROMPT	offset szTotalLoanQ3, sizeof szTotalLoanQ3
 		jmp	_la_loop3_gtl
-_la_float3_gtl: lea	r8, r8TotalLoanFund
-		lea	rdx, szAtof
-		lea	rcx, szRead
-		call	vc_sscanf
+_la_float3_gtl: lea	rcx, szRead
+		call	vc_atof
+		movq	r8TotalLoanFund, xmm0
 		fld	r8TotalLoanFund
 		ftst
 		fstsw	ax
@@ -345,8 +334,8 @@ _GetPaymentMethod	proc
 			lea	rcx, szPayMethodP
 			call	lstrlen
 			PROMPT	offset szPayMethodP, rax
-_la_loop_gpm:		mov	eax, dwBytesRead
-			cmp	eax, 3
+_la_loop_gpm:		mov	rax, qwBytesRead
+			cmp	rax, 3
 			jne	_la_prompt_gpm
 			mov	al, szRead[0]
 			; Make sure that the input is 1 or 2
@@ -423,10 +412,9 @@ _la_loop1_glr:	xor    rdx, rdx
 		jnz	_la_float1_glr
 _la_prompt1_glr:PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
 		jmp	_la_loop1_glr
-_la_float1_glr:	lea	r8, r8LoanRate
-		lea	rdx, szAtof
-		lea	rcx, szRead
-		call	vc_sscanf
+_la_float1_glr: lea	rcx, szRead
+		call	vc_atof
+		movq	r8LoanRate, xmm0
 		fld	r8LoanRate
 		ftst
 		fstsw	ax
@@ -460,10 +448,9 @@ _la_loop2_glr:	xor	rdx, rdx
 		jnz	_la_float2_glr
 _la_prompt2_glr:PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
 		jmp	_la_loop2_glr
-_la_float2_glr: lea	r8, r8LoanRate
-		lea	rdx, szAtof
-		lea	rcx, szRead
-		call	vc_sscanf
+_la_float2_glr: lea	rcx, szRead
+		call	vc_atof
+		movq	r8LoanRate, xmm0
 		fld	r8LoanRate
 		ftst
 		fstsw	ax
@@ -495,10 +482,9 @@ _la_loop3_glr:	xor	rdx, rdx
 		jnz	_la_float3_glr
 _la_prompt3_glr:PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
 		jmp	_la_loop3_glr
-_la_float3_glr:	lea	r8, r8BankRate
-		lea	rdx, szAtof
-		lea	rcx, szRead
-		call	vc_sscanf
+_la_float3_glr: lea	rcx, szRead
+		call	vc_atof
+		movq	r8BankRate, xmm0
 		fld	r8BankRate
 		ftst
 		fstsw	ax
@@ -518,10 +504,9 @@ _la_loop4_glr:	xor	rdx, rdx
 		jnz	_la_float4_glr
 _la_prompt4_glr:PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
 		jmp	_la_loop4_glr
-_la_float4_glr:	lea	r8, r8FundRate
-		lea	rdx, szAtof
-		lea	rcx, szRead
-		call	vc_sscanf
+_la_float4_glr: lea	rcx, szRead
+		call	vc_atof
+		movq	r8FundRate, xmm0
 		fld	r8FundRate
 		ftst
 		fstsw	ax
@@ -552,6 +537,8 @@ _GetLoanRate	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Get payment every month by the way of average captial plus interest
 _AveCapPlus	proc	_r8TotalLoan:Real8, _r8InterestRate:Real8
+		local	@r8MonthLoan:Real8
+
 		mov	rcx, qwPayMonths
 		dec	rcx
 		finit
@@ -573,12 +560,15 @@ _AveCapPlus	proc	_r8TotalLoan:Real8, _r8InterestRate:Real8
 		fld1
 		fsub
 		fdiv
-		fstp	r8MonthLoan
+		fstp	@r8MonthLoan
+		movq	xmm0, @r8MonthLoan
 		ret
 _AveCapPlus	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Get payment of uMonth month by the way of average captial
 _AveCap	proc	_r8TotalLoan:Real8, _r8InterestRate:Real8, _qwMonth:qword
+	local	@r8MonthLoan:Real8
+
 	mov	rax, qwPayMonths
 	sub	rax, _qwMonth
 	mov	_qwMonth, rax
@@ -590,23 +580,27 @@ _AveCap	proc	_r8TotalLoan:Real8, _r8InterestRate:Real8, _qwMonth:qword
 	fld	_r8TotalLoan
 	fidiv	dword ptr qwPayMonths
 	fmul
-	fstp	r8MonthLoan
+	fstp	@r8MonthLoan
+	movq	xmm0, @r8MonthLoan
 	ret
 _AveCap	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 main	proc
+	local	@r8MonthLoan:Real8
+	local	@r8TotalPay:Real8, @r8TotalInterest:Real8
+
 	sub	rsp, 38h	
 	mov	rcx, STD_INPUT_HANDLE
         call	GetStdHandle
-        mov     hStdIn, eax
+        mov     hStdIn, rax
 	mov	rcx, STD_OUTPUT_HANDLE
         call	GetStdHandle
-        mov     hStdOut, eax
+        mov     hStdOut, rax
 	lea	rcx, szTitle
 	call	SetConsoleTitle
 	mov	rdx, ENABLE_LINE_INPUT or ENABLE_ECHO_INPUT\
 		     or ENABLE_PROCESSED_INPUT
-	mov	ecx, hStdIn
+	mov	rcx, hStdIn
 	call	SetConsoleMode
 	mov	rdx, TRUE
 	lea	rcx, _CtrlHandler
@@ -629,16 +623,17 @@ _la_method1_single_m:
 	push	r8TotalLoan
 	call	_AveCapPlus
 	add	rsp, 10h
+	movq	@r8MonthLoan, xmm0
 	finit
-	fld	r8MonthLoan
+	fld	@r8MonthLoan
 	fimul	dword ptr qwPayMonths
 	fidiv	dwLoanTimes
-	fst	r8TotalPay
+	fst	@r8TotalPay
 	fld	r8TotalLoan
 	fidiv	dwLoanTimes
 	fst	r8TotalLoan
 	fsub
-	fst	r8TotalInterest
+	fst	@r8TotalInterest
 	jmp	_la_method1_show_m
 _la_method1_multi_m:
 	; bank payment every month
@@ -646,44 +641,36 @@ _la_method1_multi_m:
 	push	r8TotalLoanBank
 	call	_AveCapPlus
 	add	rsp, 10h
-	finit
-	fld	r8MonthLoan
-	fst	r8MonthLoanB
-	fimul	dword ptr qwPayMonths
-	fidiv	dwLoanTimes
-	fst	r8TotalPayB
-	fld	r8TotalLoanBank
-	fidiv	dwLoanTimes
-	fst	r8TotalLoanBank
-	fsub
-	fst	r8TotalInstB
+	movq	@r8MonthLoan, xmm0
 	; provident fund payment every month
 	push	r8FundRate
 	push	r8TotalLoanFund
 	call	_AveCapPlus
 	add	rsp, 10h
+	addsd	xmm0, @r8MonthLoan
+	movq	@r8MonthLoan, xmm0
 	finit
-	fld	r8MonthLoan
+	fld	@r8MonthLoan
 	fimul	dword ptr qwPayMonths
 	fidiv	dwLoanTimes
-	fadd	r8TotalPayB
-	fst	r8TotalPay
+	fst	@r8TotalPay
+	fld	r8TotalLoanBank
+	fidiv	dwLoanTimes
+	fst	r8TotalLoanBank
 	fld	r8TotalLoanFund
 	fidiv	dwLoanTimes
-	fadd	r8TotalLoanBank
+	fst	r8TotalLoanFund
+	fadd
 	fst	r8TotalLoan
 	fsub
-	fst	r8TotalInterest
-	fld	r8MonthLoan
-	fadd	r8MonthLoanB
-	fst	r8MonthLoan
+	fst	@r8TotalInterest
 _la_method1_show_m:
 	mov	rax, r8TotalLoan
 	mov	qword ptr [rsp+28h], rax
-	mov	rax, r8TotalInterest
+	mov	rax, @r8TotalInterest
 	mov	qword ptr [rsp+20h], rax
-	mov	r9, r8TotalPay
-	mov	r8, r8MonthLoan
+	mov	r9, @r8TotalPay
+	mov	r8, @r8MonthLoan
 	lea	rdx, szFinalA1
 	lea	rcx, szBuffer
 	call	vc_sprintf
@@ -692,7 +679,7 @@ _la_method1_show_m:
 	OUTPUT  offset szBuffer, rax
 	jmp	_la_end_m
 _la_method2_m:
-	mov	r8TotalPay, 0
+	mov	@r8TotalPay, 0
 	mov	rcx, qwPayMonths
 	mov	al, bLoanMethod
 	cmp	al, '1'
@@ -710,17 +697,18 @@ _la_method2_single_m:
 	push	r8TotalLoan
 	call	_AveCap
 	add	rsp, 18h
-	fld	r8MonthLoan
-	fadd	r8TotalPay
-	fst	r8TotalPay
+	movq	@r8MonthLoan, xmm0
+	fld	@r8MonthLoan
+	fadd	@r8TotalPay
+	fst	@r8TotalPay
 	inc	r8
 	loop	@B
 	fidiv	dwLoanTimes
-	fst	r8TotalPay
+	fst	@r8TotalPay
 	fld	r8TotalLoan
 	fidiv	dwLoanTimes
 	fsub
-	fstp	r8TotalInterest
+	fstp	@r8TotalInterest
 	jmp	_la_method2_show_m
 _la_method2_multi_m:
 	finit
@@ -736,31 +724,31 @@ _la_method2_multi_m:
 	push	r8TotalLoanBank
 	call	_AveCap
 	add	rsp, 18h
-	fld	r8MonthLoan
-	fadd	r8TotalPay
-	fst	r8TotalPay
+	movq	@r8MonthLoan, xmm0
 	push	r8
 	push	r8FundRate
 	push	r8TotalLoanFund
 	call	_AveCap
 	add	rsp, 18h
-	fld	r8MonthLoan
-	fadd	r8TotalPay
-	fst	r8TotalPay
+	addsd	xmm0, @r8MonthLoan
+	movq	@r8MonthLoan, xmm0
+	fld	@r8MonthLoan
+	fadd	@r8TotalPay
+	fst	@r8TotalPay
 	inc	r8
 	loop	@B
 	fidiv	dwLoanTimes
-	fst	r8TotalPay
+	fst	@r8TotalPay
 	fld	r8TotalLoanBank
 	fadd	r8TotalLoanFund
 	fidiv	dwLoanTimes
 	fsub
-	fstp	r8TotalInterest
+	fstp	@r8TotalInterest
 _la_method2_show_m:
 	mov	rax, r8TotalLoan
 	mov	[rsp+20h], rax
-	mov	r9, r8TotalInterest
-	mov	r8, r8TotalPay
+	mov	r9, @r8TotalInterest
+	mov	r8, @r8TotalPay
 	lea	rdx, szFinalA2
 	lea	rcx, szBuffer
 	call	vc_sprintf

@@ -26,12 +26,6 @@ dwPayMonths	dd	?
 r8LoanRate	Real8	?
 r8BankRate	Real8	?
 r8FundRate	Real8	?
-r8MonthLoan	Real8	?
-r8MonthLoanB	Real8	?
-r8TotalPay	Real8	?
-r8TotalInterest	Real8	?
-r8TotalPayB	Real8	?
-r8TotalInstB	Real8	?
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
                 .const
 szTitle         db      '房贷计算程序', 0
@@ -111,7 +105,6 @@ szFinalA2	db	'还款总额%.6f万', 0dh, 0ah
 		db	'支付利息%.6f万', 0dh, 0ah
 		db	'贷款总额%.6f万', 0dh, 0ah, 0
 szPause         db      'pause', 0
-szAtof		db	'%lf', 0
 dwRateTimes	dd	100	; one hundred
 dwLoanTimes	dd	10000	; ten thousand
 dwMonthsAYear	dd	12
@@ -221,9 +214,8 @@ _la_loop1_gtl:		invoke	_CheckNumValid, offset szRead, 0
 			jnz	_la_float1_gtl
 _la_prompt1_gtl:	PROMPT	offset szTotalLoanQ1, sizeof szTotalLoanQ1
 			jmp	_la_loop1_gtl
-_la_float1_gtl:		invoke	crt_sscanf, offset szRead, offset szAtof,\
-				offset r8TotalLoan
-			fld	r8TotalLoan
+_la_float1_gtl:		invoke	crt_atof, offset szRead
+			fst	r8TotalLoan
 			; Make sure that the input is a number above 0
 			ftst
 			fstsw	ax
@@ -244,9 +236,8 @@ _la_loop2_gtl:		invoke	_CheckNumValid, offset szRead, 0
 			jnz	_la_float2_gtl
 _la_prompt2_gtl:	PROMPT	offset szTotalLoanQ2, sizeof szTotalLoanQ2
 			jmp	_la_loop2_gtl
-_la_float2_gtl:		invoke	crt_sscanf, offset szRead, offset szAtof,\
-				offset r8TotalLoanBank
-			fld	r8TotalLoanBank
+_la_float2_gtl:		invoke	crt_atof, offset szRead
+			fst	r8TotalLoanBank
 			ftst
 			fstsw	ax
 			sahf
@@ -257,9 +248,8 @@ _la_loop3_gtl:		invoke	_CheckNumValid, offset szRead, 0
 			jnz	_la_float3_gtl
 _la_prompt3_gtl:	PROMPT	offset szTotalLoanQ3, sizeof szTotalLoanQ3
 			jmp	_la_loop3_gtl
-_la_float3_gtl:		invoke	crt_sscanf, offset szRead, offset szAtof,\
-				offset r8TotalLoanFund
-			fld	r8TotalLoanFund
+_la_float3_gtl:		invoke	crt_atof, offset szRead
+			fst	r8TotalLoanFund
 			ftst
 			fstsw	ax
 			sahf
@@ -345,9 +335,8 @@ _la_loop1_glr:	     	invoke	_CheckNumValid, offset szRead, 0
 			jnz	_la_float1_glr
 _la_prompt1_glr:	PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
 			jmp	_la_loop1_glr
-_la_float1_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
-				offset r8LoanRate
-			fld	r8LoanRate
+_la_float1_glr:		invoke	crt_atof, offset szRead
+			fst	r8LoanRate
 			ftst
 			fstsw	ax
 			sahf
@@ -372,9 +361,8 @@ _la_loop2_glr:		invoke	_CheckNumValid, offset szRead, 0
 			jnz	_la_float2_glr
 _la_prompt2_glr:	PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
 			jmp	_la_loop2_glr
-_la_float2_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
-				offset r8LoanRate
-			fld	r8LoanRate
+_la_float2_glr:		invoke	crt_atof, offset szRead
+			fst	r8LoanRate
 			ftst
 			fstsw	ax
 			sahf
@@ -399,9 +387,8 @@ _la_loop3_glr:		invoke	_CheckNumValid, offset szRead, 0
 			jnz	_la_float3_glr
 _la_prompt3_glr:	PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
 			jmp	_la_loop3_glr
-_la_float3_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
-				offset r8BankRate
-			fld	r8BankRate
+_la_float3_glr:		invoke	crt_atof, offset szRead
+			fst	r8BankRate
 			ftst
 			fstsw	ax
 			sahf
@@ -417,9 +404,8 @@ _la_loop4_glr:		invoke	_CheckNumValid, offset szRead, 0
 			jnz	_la_float4_glr
 _la_prompt4_glr:	PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
 			jmp	_la_loop4_glr
-_la_float4_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
-				offset r8FundRate
-			fld	r8FundRate
+_la_float4_glr:		invoke	crt_atof, offset szRead
+			fst	r8FundRate
 			ftst
 			fstsw	ax
 			sahf
@@ -466,7 +452,6 @@ _AveCapPlus	proc	uses ecx _r8TotalLoan:Real8, _r8InterestRate:Real8
 		fld1
 		fsub
 		fdiv
-		fstp	r8MonthLoan
 		ret
 _AveCapPlus	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -483,11 +468,13 @@ _AveCap	proc	_r8TotalLoan:Real8, _r8InterestRate:Real8, _dwMonth:dword
 	fld	_r8TotalLoan
 	fidiv	dwPayMonths
 	fmul
-	fstp	r8MonthLoan
 	ret
 _AveCap	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-start:
+main	proc
+	local	@r8MonthLoan:Real8
+	local	@r8TotalPay:Real8, @r8TotalInterest:Real8
+
         invoke  GetStdHandle, STD_INPUT_HANDLE
         mov     hStdIn, eax
         invoke  GetStdHandle, STD_OUTPUT_HANDLE
@@ -505,56 +492,43 @@ start:
 		; for commercial or provident fund loan method
 		.if 	bLoanMethod == '1' || bLoanMethod == '2'
 		    	invoke  _AveCapPlus, r8TotalLoan, r8LoanRate
-			finit
-			fld	r8MonthLoan
+			fst	@r8MonthLoan
 			fimul	dwPayMonths
 			fidiv	dwLoanTimes
-			fst	r8TotalPay
+			fst	@r8TotalPay
 			fld	r8TotalLoan
 			fidiv	dwLoanTimes
 			fst	r8TotalLoan
 			fsub
-			fst	r8TotalInterest
+			fst	@r8TotalInterest
 		.else	; for syndicated loan method
 			; bank payment every month
 			invoke  _AveCapPlus, r8TotalLoanBank, r8BankRate
-			finit
-			fld	r8MonthLoan
-			fst	r8MonthLoanB
+			fst	@r8MonthLoan
+			; provident fund payment every month
+			invoke  _AveCapPlus, r8TotalLoanFund, r8FundRate
+			fld	@r8MonthLoan
+			fadd
+			fst	@r8MonthLoan
 			fimul	dwPayMonths
 			fidiv	dwLoanTimes
-			fst	r8TotalPayB
+			fst	@r8TotalPay
 			fld	r8TotalLoanBank
+			fld	r8TotalLoanFund
+			fadd
 			fidiv	dwLoanTimes
 			fst	r8TotalLoanBank
 			fsub
-			fst	r8TotalInstB
-			; provident fund payment every month
-			invoke  _AveCapPlus, r8TotalLoanFund, r8FundRate
-			finit
-			fld	r8MonthLoan
-			fimul	dwPayMonths
-			fidiv	dwLoanTimes
-			fadd	r8TotalPayB
-			fst	r8TotalPay
-			fld	r8TotalLoanFund
-			fidiv	dwLoanTimes
-			fadd	r8TotalLoanBank
-			fst	r8TotalLoan
-			fsub
-			fst	r8TotalInterest
-			fld	r8MonthLoan
-			fadd	r8MonthLoanB
-			fst	r8MonthLoan
+			fst	@r8TotalInterest
 		.endif
 		invoke	crt_sprintf, offset szBuffer,\
-			offset szFinalA1, r8MonthLoan, r8TotalPay,\
-			r8TotalInterest, r8TotalLoan
+			offset szFinalA1, @r8MonthLoan, @r8TotalPay,\
+			@r8TotalInterest, r8TotalLoan
 		invoke	lstrlen, offset szBuffer
 		OUTPUT  offset szBuffer, eax
 	.else	; for average capital method
-		mov	dword ptr r8TotalPay, 0
-		mov	dword ptr r8TotalPay+4, 0
+		fldz
+		fst	@r8TotalPay
 		mov	ecx, dwPayMonths
 		; for commercial or provident fund loan method
 		.if	bLoanMethod == '1' || bLoanMethod == '2'
@@ -564,17 +538,16 @@ start:
 			fstp	r8LoanRate	
 			xor	edx, edx
 @@:			invoke	_AveCap, r8TotalLoan, r8LoanRate, edx
-			fld	r8MonthLoan
-			fadd	r8TotalPay
-			fst	r8TotalPay
+			fadd	@r8TotalPay
+			fst	@r8TotalPay
 			inc	edx
 			loop	@B
 			fidiv	dwLoanTimes
-			fst	r8TotalPay
+			fst	@r8TotalPay
 			fld	r8TotalLoan
 			fidiv	dwLoanTimes
 			fsub
-			fstp	r8TotalInterest
+			fstp	@r8TotalInterest
 		.else	; for syndicated loan method
 			finit
 			fld	r8BankRate
@@ -585,30 +558,31 @@ start:
 			fstp	r8FundRate
 			xor	edx, edx
 @@:			invoke	_AveCap, r8TotalLoanBank, r8BankRate, edx
-			fld	r8MonthLoan
-			fadd	r8TotalPay
-			fst	r8TotalPay
+			fst	@r8MonthLoan
 			invoke	_AveCap, r8TotalLoanFund, r8FundRate, edx
-			fld	r8MonthLoan
-			fadd	r8TotalPay
-			fst	r8TotalPay
+			fld	@r8MonthLoan
+			fadd
+			fadd	@r8TotalPay
+			fst	@r8TotalPay
 			inc	edx
 			loop	@B
 			fidiv	dwLoanTimes
-			fst	r8TotalPay
+			fst	@r8TotalPay
 			fld	r8TotalLoanBank
 			fadd	r8TotalLoanFund
 			fidiv	dwLoanTimes
 			fsub
-			fstp	r8TotalInterest
+			fstp	@r8TotalInterest
 		.endif
 		invoke	crt_sprintf, offset szBuffer,\
-			offset szFinalA2, r8TotalPay,\
-			r8TotalInterest, r8TotalLoan
+			offset szFinalA2, @r8TotalPay,\
+			@r8TotalInterest, r8TotalLoan
 		invoke	lstrlen, offset szBuffer
 		OUTPUT  offset szBuffer, eax
 	.endif
 	invoke  crt_system, offset szPause
         invoke  ExitProcess, NULL
+	ret
+main 	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        end     start
+        end     main
