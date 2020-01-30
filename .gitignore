@@ -7,3 +7,6 @@ Common Lisp/*~
 Assembly_x86/*~
 Assembly_x86/*.obj
 Assembly_x86/*.exe
+Assembly_x64/*~
+Assembly_x64/*.obj
+Assembly_x64/*.exe

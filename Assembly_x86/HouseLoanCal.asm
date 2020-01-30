@@ -110,7 +110,6 @@ szFinalA1	db	'每月需还款%.2f元', 0dh, 0ah
 szFinalA2	db	'还款总额%.6f万', 0dh, 0ah
 		db	'支付利息%.6f万', 0dh, 0ah
 		db	'贷款总额%.6f万', 0dh, 0ah, 0
-szDebug		db	'%d', 0dh, 0ah, 0
 szPause         db      'pause', 0
 szAtof		db	'%lf', 0
 dwRateTimes	dd	100	; one hundred
@@ -135,47 +134,45 @@ PROMPT	macro 	_lpszPrompt, _dwSize
 	endm
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Check the input is a valid integer or floating number
-_CheckNumValid	proc	uses ecx edx _lpszBuffer:dword, _dwIsInt:dword
+_CheckNumValid	proc	uses ecx esi _lpszBuffer:dword, _dwIsInt:dword
 		local	@dwDotExist:dword
 
 		invoke	lstrlen, _lpszBuffer
 		sub	eax, 2
 		mov	ecx, eax
 		mov	@dwDotExist, 0
-		mov	edx, _lpszBuffer
+		cld
+		mov	esi, _lpszBuffer
 		mov	eax, _dwIsInt
 		or	eax, eax
-		jz	Float_Check
-Int_Check:	mov	al, [edx] ; for integer
+		jz	_la_float_cnv
+_la_int_cnv:	lodsb		; for integer
 		cmp	al, '0'
-		jb	Fail_Check
+		jb	_la_fail_cnv
 		cmp	al, '9'
-		ja	Fail_Check
-		inc 	edx
-		loop 	Int_Check
+		ja	_la_fail_cnv
+		loop 	_la_int_cnv
 		mov	eax, TRUE
-		jmp	End_Check
-Float_Check: 	mov	al, [edx] ; for floating number
+		jmp	_la_end_cnv
+_la_float_cnv: 	lodsb		; for floating number
 		cmp	al, '0'
-		jb	Dot_Check
+		jb	_la_dot_cnv
 		cmp	al, '9'
-		ja	Dot_Check
-		inc	edx
-		loop	Float_Check
+		ja	_la_dot_cnv
+		loop	_la_float_cnv
 		mov	eax, TRUE
-		jmp	End_Check
-Dot_Check:	cmp	al, '.'
-		jne	Fail_Check
+		jmp	_la_end_cnv
+_la_dot_cnv:	cmp	al, '.'
+		jne	_la_fail_cnv
 		mov	eax, @dwDotExist
 		or	eax, eax ; decimal point can only appear once
-		jnz	Fail_Check
+		jnz	_la_fail_cnv
 		mov	@dwDotExist, TRUE
-		inc	edx
-		loop	Float_Check
+		loop	_la_float_cnv
 		mov	eax, TRUE
-		jmp	End_Check
-Fail_Check:	xor	eax, eax
-End_Check:	ret
+		jmp	_la_end_cnv
+_la_fail_cnv:	xor	eax, eax
+_la_end_cnv:	ret
 _CheckNumValid	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 _CtrlHandler	proc	_dwCtrlType
@@ -219,19 +216,19 @@ _GetLoanMethod	endp
 _GetTotalLoan	proc
 		.if	bLoanMethod == '1' || bLoanMethod == '2'
 			PROMPT  offset szTotalLoanP1, sizeof szTotalLoanP1
-_Loop1:			invoke	_CheckNumValid, offset szRead, 0
+_la_loop1_gtl:		invoke	_CheckNumValid, offset szRead, 0
 			or	eax, eax
-			jnz	_Float1
-_Prompt1:		PROMPT	offset szTotalLoanQ1, sizeof szTotalLoanQ1
-			jmp	_Loop1
-_Float1:		invoke	crt_sscanf, offset szRead, offset szAtof,\
+			jnz	_la_float1_gtl
+_la_prompt1_gtl:	PROMPT	offset szTotalLoanQ1, sizeof szTotalLoanQ1
+			jmp	_la_loop1_gtl
+_la_float1_gtl:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 				offset r8TotalLoan
 			fld	r8TotalLoan
 			; Make sure that the input is a number above 0
 			ftst
 			fstsw	ax
 			sahf
-			jle	_Prompt1
+			jle	_la_prompt1_gtl
 			invoke	crt_sprintf, offset szBuffer,\
 				offset szTotalLoanA1, r8TotalLoan
 			invoke	lstrlen, offset szBuffer
@@ -242,31 +239,31 @@ _Float1:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 			fstp	r8TotalLoan
 		.else
 			PROMPT  offset szTotalLoanP2, sizeof szTotalLoanP2
-_Loop2:			invoke	_CheckNumValid, offset szRead, 0
+_la_loop2_gtl:		invoke	_CheckNumValid, offset szRead, 0
 			or	eax, eax
-			jnz	_Float2
-_Prompt2:		PROMPT	offset szTotalLoanQ2, sizeof szTotalLoanQ2
-			jmp	_Loop2
-_Float2:		invoke	crt_sscanf, offset szRead, offset szAtof,\
+			jnz	_la_float2_gtl
+_la_prompt2_gtl:	PROMPT	offset szTotalLoanQ2, sizeof szTotalLoanQ2
+			jmp	_la_loop2_gtl
+_la_float2_gtl:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 				offset r8TotalLoanBank
 			fld	r8TotalLoanBank
 			ftst
 			fstsw	ax
 			sahf
-			jle	_Prompt2
+			jle	_la_prompt2_gtl
 			PROMPT  offset szTotalLoanP3, sizeof szTotalLoanP3
-_Loop3:			invoke	_CheckNumValid, offset szRead, 0
+_la_loop3_gtl:		invoke	_CheckNumValid, offset szRead, 0
 			or	eax, eax
-			jnz	_Float3
-_Prompt3:		PROMPT	offset szTotalLoanQ3, sizeof szTotalLoanQ3
-			jmp	_Loop3
-_Float3:		invoke	crt_sscanf, offset szRead, offset szAtof,\
+			jnz	_la_float3_gtl
+_la_prompt3_gtl:	PROMPT	offset szTotalLoanQ3, sizeof szTotalLoanQ3
+			jmp	_la_loop3_gtl
+_la_float3_gtl:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 				offset r8TotalLoanFund
 			fld	r8TotalLoanFund
 			ftst
 			fstsw	ax
 			sahf
-			jle	_Prompt3
+			jle	_la_prompt3_gtl
 			finit
 			fld	r8TotalLoanBank
 			fadd	r8TotalLoanFund
@@ -310,21 +307,21 @@ _GetPaymentMethod	proc
 _GetPaymentMethod	endp
 ;>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ; Get payment months
-_GetPayMonths	proc	uses edx
+_GetPayMonths	proc
 		local	@dwPayYears:dword
 
 		PROMPT	offset szPayMonthP, sizeof szPayMonthP
-_Loop4:		invoke	_CheckNumValid, offset szRead, TRUE
+_la_loop_gpm:	invoke	_CheckNumValid, offset szRead, TRUE
 		or	eax, eax
-		jnz	_Int1
-_Prompt4:	PROMPT	offset szPayMonthQ, sizeof szPayMonthQ
-		jmp	_Loop4
-_Int1:		invoke	crt_atoi, offset szRead
+		jnz	_la_int_gpm
+_la_prompt_gpm:	PROMPT	offset szPayMonthQ, sizeof szPayMonthQ
+		jmp	_la_loop_gpm
+_la_int_gpm:	invoke	crt_atoi, offset szRead
 		; Make sure that the input is a integer and between 1 and 30
 		cmp	eax, 1
-		jl	_Prompt4
+		jl	_la_prompt_gpm
 		cmp	eax, 30
-		jg	_Prompt4
+		jg	_la_prompt_gpm
 		invoke	crt_atoi, offset szRead
 		mov	@dwPayYears, eax
 		mov	edx, 12
@@ -343,22 +340,22 @@ _GetLoanRate	proc
 			invoke	lstrlen, offset szLoanRateP1
 			PROMPT	offset szLoanRateP1, eax
 ; make sure that the input is a number above 0 below 100
-_Loop5:			invoke	_CheckNumValid, offset szRead, 0
+_la_loop1_glr:	     	invoke	_CheckNumValid, offset szRead, 0
 			or	eax, eax
-			jnz	_Float4
-_Prompt5:		PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
-			jmp	_Loop5
-_Float4:		invoke	crt_sscanf, offset szRead, offset szAtof,\
+			jnz	_la_float1_glr
+_la_prompt1_glr:	PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
+			jmp	_la_loop1_glr
+_la_float1_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 				offset r8LoanRate
 			fld	r8LoanRate
 			ftst
 			fstsw	ax
 			sahf
-			jle	_Prompt5 ;signed
+			jle	_la_prompt1_glr ;signed
 			ficom	dwRateTimes
 			fstsw	ax
 			sahf
-			jae	_Prompt5 ;unsigned
+			jae	_la_prompt1_glr ;unsigned
 			invoke	crt_sprintf, offset szBuffer,\
 				offset szLoanRateA1, r8LoanRate
 			invoke	lstrlen, offset szBuffer
@@ -370,22 +367,22 @@ _Float4:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 		.elseif bLoanMethod == '2'
 			invoke	lstrlen, offset szLoanRateP2
 			PROMPT	offset szLoanRateP2, eax
-_Loop6:			invoke	_CheckNumValid, offset szRead, 0
+_la_loop2_glr:		invoke	_CheckNumValid, offset szRead, 0
 			or	eax, eax
-			jnz	_Float5
-_Prompt6:		PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
-			jmp	_Loop6
-_Float5:		invoke	crt_sscanf, offset szRead, offset szAtof,\
+			jnz	_la_float2_glr
+_la_prompt2_glr:	PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
+			jmp	_la_loop2_glr
+_la_float2_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 				offset r8LoanRate
 			fld	r8LoanRate
 			ftst
 			fstsw	ax
 			sahf
-			jle	_Prompt6 ;signed
+			jle	_la_prompt2_glr ;signed
 			ficom	dwRateTimes
 			fstsw	ax
 			sahf
-			jae	_Prompt6 ;unsigned
+			jae	_la_prompt2_glr ;unsigned
 			invoke	crt_sprintf, offset szBuffer,\
 				offset szLoanRateA2, r8LoanRate
 			invoke	lstrlen, offset szBuffer
@@ -397,40 +394,40 @@ _Float5:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 		.else
 			invoke	lstrlen, offset szLoanRateP1
 			PROMPT	offset szLoanRateP1, eax
-_Loop7:			invoke	_CheckNumValid, offset szRead, 0
+_la_loop3_glr:		invoke	_CheckNumValid, offset szRead, 0
 			or	eax, eax
-			jnz	_Float6
-_Prompt7:		PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
-			jmp	_Loop7
-_Float6:		invoke	crt_sscanf, offset szRead, offset szAtof,\
+			jnz	_la_float3_glr
+_la_prompt3_glr:	PROMPT	offset szLoanRateQ1, sizeof szLoanRateQ1
+			jmp	_la_loop3_glr
+_la_float3_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 				offset r8BankRate
 			fld	r8BankRate
 			ftst
 			fstsw	ax
 			sahf
-			jle	_Prompt7 ;signed
+			jle	_la_prompt3_glr ;signed
 			ficom	dwRateTimes
 			fstsw	ax
 			sahf
-			jae	_Prompt7 ;unsigned
+			jae	_la_prompt3_glr ;unsigned
 			invoke	lstrlen, offset szLoanRateP2
 			PROMPT	offset szLoanRateP2, eax
-_Loop8:			invoke	_CheckNumValid, offset szRead, 0
+_la_loop4_glr:		invoke	_CheckNumValid, offset szRead, 0
 			or	eax, eax
-			jnz	_Float7
-_Prompt8:		PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
-			jmp	_Loop8
-_Float7:		invoke	crt_sscanf, offset szRead, offset szAtof,\
+			jnz	_la_float4_glr
+_la_prompt4_glr:	PROMPT	offset szLoanRateQ2, sizeof szLoanRateQ2
+			jmp	_la_loop4_glr
+_la_float4_glr:		invoke	crt_sscanf, offset szRead, offset szAtof,\
 				offset r8FundRate
 			fld	r8FundRate
 			ftst
 			fstsw	ax
 			sahf
-			jle	_Prompt8 ;signed
+			jle	_la_prompt4_glr ;signed
 			ficom	dwRateTimes
 			fstsw	ax
 			sahf
-			jae	_Prompt8 ;unsigned
+			jae	_la_prompt4_glr ;unsigned
 			invoke	crt_sprintf, offset szBuffer,\
 				offset szLoanRateA3, r8BankRate, r8FundRate
 			invoke	lstrlen, offset szBuffer
@@ -558,7 +555,6 @@ start:
 	.else	; for average capital method
 		mov	dword ptr r8TotalPay, 0
 		mov	dword ptr r8TotalPay+4, 0
-		push	ecx
 		mov	ecx, dwPayMonths
 		; for commercial or provident fund loan method
 		.if	bLoanMethod == '1' || bLoanMethod == '2'
@@ -566,14 +562,12 @@ start:
 			fld	r8LoanRate
 			fidiv	dwMonthsAYear
 			fstp	r8LoanRate	
-			xor	eax, eax
-@@:			push	eax
-			invoke	_AveCap, r8TotalLoan, r8LoanRate, eax
-			pop	eax
+			xor	edx, edx
+@@:			invoke	_AveCap, r8TotalLoan, r8LoanRate, edx
 			fld	r8MonthLoan
 			fadd	r8TotalPay
 			fst	r8TotalPay
-			inc	eax
+			inc	edx
 			loop	@B
 			fidiv	dwLoanTimes
 			fst	r8TotalPay
@@ -589,20 +583,16 @@ start:
 			fld	r8FundRate
 			fidiv	dwMonthsAYear
 			fstp	r8FundRate
-			xor	eax, eax
-@@:			push	eax
-			invoke	_AveCap, r8TotalLoanBank, r8BankRate, eax
-			pop	eax
+			xor	edx, edx
+@@:			invoke	_AveCap, r8TotalLoanBank, r8BankRate, edx
 			fld	r8MonthLoan
 			fadd	r8TotalPay
 			fst	r8TotalPay
-			push	eax
-			invoke	_AveCap, r8TotalLoanFund, r8FundRate, eax
-			pop	eax
+			invoke	_AveCap, r8TotalLoanFund, r8FundRate, edx
 			fld	r8MonthLoan
 			fadd	r8TotalPay
 			fst	r8TotalPay
-			inc	eax
+			inc	edx
 			loop	@B
 			fidiv	dwLoanTimes
 			fst	r8TotalPay
@@ -612,7 +602,6 @@ start:
 			fsub
 			fstp	r8TotalInterest
 		.endif
-		pop	ecx
 		invoke	crt_sprintf, offset szBuffer,\
 			offset szFinalA2, r8TotalPay,\
 			r8TotalInterest, r8TotalLoan
