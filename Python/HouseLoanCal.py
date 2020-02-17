@@ -1,16 +1,13 @@
 """Calculate house loan script verson 1."""
-import re
 import time
 
 
 def GetLoanMethod():
     """Get loan methon, 1 for commercial loan, 2 for provident fund loan and 3 for syndicated loan."""
     loanMethod = input("请选择您的贷款方式\n\t1、商业贷款\n\t2、公积金贷款\n\t3、组合贷款\n请输入对应序号（1-3）：")
-    # Make sure that the input is between 1 and 3
-    reMatch = re.match('[1-3]$', loanMethod)
-    while reMatch is None:
+    # Make sure that the input is 1, 2 or 3
+    while loanMethod != '1' and loanMethod != '2' and loanMethod != '3':
         loanMethod = input("请输入有效对应序号（1-3）：")
-        reMatch = re.match('[1-3]$', loanMethod)
 
     if loanMethod == '1':
         print("您选择的贷款方式为商业贷款\n"+">"*15)
@@ -19,22 +16,22 @@ def GetLoanMethod():
     else:
         print("您选择的贷款方式为组合贷款\n"+">"*15)
 
-    return int(loanMethod)
+    return loanMethod
 
 
 def GetTotalLoan(loan_method):
     """Get total loan accroding to method."""
-    if loan_method == 1 or loan_method == 2:
+    if loan_method == '1' or loan_method == '2':
         totalLoan = input("请输入您的贷款总额（万）：")
-        reMatch = re.match(r'\d+\.?\d*$', totalLoan)
         while True:
-            if reMatch is not None:
+            try:
                 totalLoan = float(totalLoan)
                 if totalLoan > 0:
                     break
-
-            totalLoan = input("请输入有效贷款总额（万）：")
-            reMatch = re.match(r'\d+\.?\d*$', totalLoan)
+                else:
+                    totalLoan = input("请输入有效贷款总额（万）：")
+            except ValueError:
+                totalLoan = input("请输入有效贷款总额（万）：")
 
         print("您的总贷款金额为{}万元\n".format(totalLoan)+">"*15)
         totalLoan *= 10000
@@ -42,25 +39,26 @@ def GetTotalLoan(loan_method):
         return (totalLoan, 0)
     else:
         commercialLoan = input("请输入您的商业贷款总额（万）：")
-        reMatch = re.match(r'\d+\.?\d*$', commercialLoan)
         while True:
-            if reMatch is not None:
+            try:
                 commercialLoan = float(commercialLoan)
                 if commercialLoan > 0:
                     break
-
-            commercialLoan = input("请输入有效商业贷款总额（万）：")
-            reMatch = re.match(r'\d+\.?\d*$', commercialLoan)
+                else:
+                    commercialLoan = input("请输入有效商业贷款总额（万）：")
+            except ValueError:
+                commercialLoan = input("请输入有效商业贷款总额（万）：")
 
         providentFundLoan = input("请输入您的公积金贷款总额（万）：")
-        reMatch = re.match(r'\d+\.?\d*$', providentFundLoan)
         while True:
-            if reMatch is not None:
+            try:
                 providentFundLoan = float(providentFundLoan)
                 if providentFundLoan > 0:
                     break
-            providentFundLoan = input("请输入有效公积金贷款总额（万）：")
-            reMatch = re.match(r'\d+\.?\d*$', providentFundLoan)
+                else:
+                    providentFundLoan = input("请输入有效公积金贷款总额（万）：")
+            except ValueError:
+                providentFundLoan = input("请输入有效公积金贷款总额（万）：")
 
         print("您的商业贷款金额为{}万元\n您的公积金贷款金额为{}万元\n总贷款金额为{}万元\n".format(commercialLoan, providentFundLoan, commercialLoan+providentFundLoan)+">"*15)
 
@@ -73,30 +71,33 @@ def GetTotalLoan(loan_method):
 def GetPaymentMethod():
     """Get payment method."""
     paymentMethod = input("请选择您的还款方式\n\t1、等额本息（每月等额还款）\n\t2、等额本金（每月递减还款）\n请输入对应序号（1-2）：")
-    # Make sure that the input is between 1 and 2
-    reMatch = re.match('[12]$', paymentMethod)
-    while reMatch is None:
+    # Make sure that the input is 1 or 2
+    while paymentMethod != '1' and paymentMethod != '2':
         paymentMethod = input("请输入有效对应序号（1-2）：")
-        reMatch = re.match('[12]$', paymentMethod)
 
     if paymentMethod == '1':
         print("您选择的还款方式为等额本息\n"+">"*15)
     else:
         print("您选择的还款方式为等额本金\n"+">"*15)
 
-    return int(paymentMethod)
+    return paymentMethod
 
 
 def GetPaymentMonths():
     """Get payment months."""
     paymentYears = input("请输入还款年数（1-30）：")
     # Make sure that the input is between 1 and 30
-    reMatch = re.match(r'[1-9]$|[12]\d$|30$', paymentYears)
-    while reMatch is None:
-        paymentYears = input("请输入有效还款年数（1-30）：")
-        reMatch = re.match(r'[1-9]$|[12]\d$|30$', paymentYears)
+    while True:
+        try:
+            paymentYears = int(paymentYears)
+            if paymentYears >= 1 and paymentYears <= 30:
+                break
+            else:
+                paymentYears = input("请输入有效还款年数（1-30）：")
+        except ValueError:
+            paymentYears = input("请输入有效还款年数（1-30）：")
 
-    paymentMonths = int(paymentYears)*12
+    paymentMonths = paymentYears*12
     print("您的还款年数为{}年，共{}个月\n".format(paymentYears, paymentMonths)+">"*15)
     return paymentMonths
 
@@ -118,33 +119,33 @@ def GetStartDate():
 
 def GetLoanInterestRate(loan_method):
     """Get loan interest rate according to loan method."""
-    if loan_method == 1:
+    if loan_method == '1':
         loanInterestRate = input("请输入贷款利率，截止2019年末，银行贷款利率如下\n\t7折（3.43%）\n\t8折（3.92%）\n\t8.3折（4.067%）\n\t8.5折（4.165%）\n\t8.8折（4.312%）\n\t9折（4.41%）\n\t9.5折（4.655%）\n\t基准利率（4.9%）\n\t1.05倍（5.145%）\n\t1.1倍（5.39%）\n\t1.15倍（5.635%）\n\t1.2倍（5.88%）\n\t1.25倍（6.125%）\n\t1.3倍（6.37%）\n\t1.35倍（6.615%）\n\t1.4倍（6.86%）\n请输入具体数值（%）：")
-        reMatch = re.match(r'\d+\.?\d*$', loanInterestRate)
         while True:
-            if reMatch is not None:
+            try:
                 loanInterestRate = float(loanInterestRate)
                 if loanInterestRate > 0 and loanInterestRate < 100:
                     break
-
-            loanInterestRate = input("请输入有效贷款利率：")
-            reMatch = re.match(r'\d+\.?\d*$', loanInterestRate)
+                else:
+                    loanInterestRate = input("请输入有效贷款利率：")
+            except ValueError:
+                loanInterestRate = input("请输入有效贷款利率：")
 
         print("您的贷款利率为{}%\n".format(loanInterestRate)+">"*15)
         loanInterestRate /= 100
 
         return (loanInterestRate, 0)
-    elif loan_method == 2:
+    elif loan_method == '2':
         loanInterestRate = input("请输入公积金贷款利率，截止2019年末，公积金贷款利率如下\n\t基准利率（3.25%）\n\t1.1倍（3.575%）\n\t1.2倍（3.9%）\n请输入具体数值（%）：")
-        reMatch = re.match(r'\d+\.?\d*$', loanInterestRate)
         while True:
-            if reMatch is not None:
+            try:
                 loanInterestRate = float(loanInterestRate)
                 if loanInterestRate > 0 and loanInterestRate < 100:
                     break
-
-            loanInterestRate = input("请输入有效公积金贷款利率：")
-            reMatch = re.match(r'\d+\.?\d*$', loanInterestRate)
+                else:
+                    loanInterestRate = input("请输入有效公积金贷款利率：")
+            except ValueError:
+                loanInterestRate = input("请输入有效公积金贷款利率：")
 
         print("您的公积金贷款利率为{}%\n".format(loanInterestRate)+">"*15)
         loanInterestRate /= 100
@@ -152,26 +153,26 @@ def GetLoanInterestRate(loan_method):
         return (loanInterestRate, 0)
     else:
         bankInterestRate = input("请输入银行贷款利率，截止2019年末，银行贷款利率如下\n\t7折（3.43%）\n\t8折（3.92%）\n\t8.3折（4.067%）\n\t8.5折（4.165%）\n\t8.8折（4.312%）\n\t9折（4.41%）\n\t9.5折（4.655%）\n\t基准利率（4.9%）\n\t1.05倍（5.145%）\n\t1.1倍（5.39%）\n\t1.15倍（5.635%）\n\t1.2倍（5.88%）\n\t1.25倍（6.125%）\n\t1.3倍（6.37%）\n\t1.35倍（6.615%）\n\t1.4倍（6.86%）\n请输入具体数值（%）：")
-        reMatch = re.match(r'\d+\.?\d*$', bankInterestRate)
         while True:
-            if reMatch is not None:
+            try:
                 bankInterestRate = float(bankInterestRate)
                 if bankInterestRate > 0 and bankInterestRate < 100:
                     break
-
-            bankInterestRate = input("请输入有效贷款利率：")
-            reMatch = re.match(r'\d+\.?\d*$', bankInterestRate)
+                else:
+                    bankInterestRate = input("请输入有效贷款利率：")
+            except ValueError:
+                bankInterestRate = input("请输入有效贷款利率：")
 
         fundInterestRate = input("请输入公积金贷款利率，截止2019年末，公积金贷款利率如下\n\t基准利率（3.25%）\n\t1.1倍（3.575%）\n\t1.2倍（3.9%）\n请输入具体数值（%）：")
-        reMatch = re.match(r'\d+\.?\d*$', fundInterestRate)
         while True:
-            if reMatch is not None:
+            try:
                 fundInterestRate = float(fundInterestRate)
                 if fundInterestRate > 0 and fundInterestRate < 100:
                     break
-
-            fundInterestRate = input("请输入有效公积金贷款利率：")
-            reMatch = re.match(r'\d+\.?\d*$', fundInterestRate)
+                else:
+                    fundInterestRate = input("请输入有效公积金贷款利率：")
+            except ValueError:
+                fundInterestRate = input("请输入有效公积金贷款利率：")
 
         print("您的银行贷款利率为{}%，公积金贷款利率为{}%\n".format(bankInterestRate, fundInterestRate)+">"*15)
         bankInterestRate /= 100
@@ -201,8 +202,8 @@ paymentMonths = GetPaymentMonths()
 startDate = GetStartDate()
 loanInterestRate = GetLoanInterestRate(loanMethod)
 
-if paymentMethod == 1:          # for average capital plus interest method
-    if loanMethod == 1 or loanMethod == 2:  # for commercial or provident fund loan method
+if paymentMethod == '1':          # for average capital plus interest method
+    if loanMethod == '1' or loanMethod == '2':  # for commercial or provident fund loan method
         monthPayment = AverageCapitalPlusInterest(totalLoan[0], paymentMonths, loanInterestRate[0], startDate)
         totalPayment = monthPayment*paymentMonths
         totalInterest = totalPayment - totalLoan[0]
@@ -214,7 +215,7 @@ if paymentMethod == 1:          # for average capital plus interest method
         totalInterest = totalPayment - (totalLoan[0]+totalLoan[1])
         print("每月需还款{:.2f}元\n\t还款总额{:.6f}万\n\t支付利息{:.6f}万\n\t贷款总额{:.6f}万".format((bankMonthPayment+fundMonthPayment), totalPayment/10000, totalInterest/10000, (totalLoan[0]+totalLoan[1])/10000))
 else:                           # for average capital method
-    if loanMethod == 1 or loanMethod == 2:  # for commercial or provident fund loan method
+    if loanMethod == '1' or loanMethod == '2':  # for commercial or provident fund loan method
         totalPayment = 0
         for m in range(0, paymentMonths):
             monthPayment = AverageCapital(totalLoan[0], paymentMonths, loanInterestRate[0], startDate, m)
